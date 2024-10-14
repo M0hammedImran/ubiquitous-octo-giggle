@@ -1,101 +1,141 @@
-import Image from "next/image";
+"use client";
+import React, { useCallback, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { FileSpreadsheet, Upload, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { read, utils } from "xlsx";
+import { EmployeeCard } from "./card";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+export default function Component() {
+	const [file, setFile] = useState<File | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const [data, setData] = useState<Record<string, string>[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+	const onDrop = useCallback(async (acceptedFiles: File[]) => {
+		if (acceptedFiles.length > 0) {
+			const uploadedFile = acceptedFiles[0];
+			if (
+				uploadedFile.type ===
+				"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+			) {
+				setFile(uploadedFile);
+
+				const wb = read(await uploadedFile.arrayBuffer());
+				const ws = wb.Sheets[wb.SheetNames[0]]; // get the first worksheet
+				const data = utils.sheet_to_json<Record<string, string>>(ws); // generate objects
+				setData(data);
+
+				setError(null);
+			} else {
+				setError("Please upload only .xlsx files");
+			}
+		}
+	}, []);
+
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({
+		onDrop,
+		accept: {
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+				".xlsx",
+			],
+		},
+		multiple: false,
+	});
+
+	const removeFile = () => {
+		setFile(null);
+	};
+
+	return (
+		<div className="flex flex-col min-h-screen">
+			<header className="bg-white shadow-sm">
+				<nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="flex justify-between h-16">
+						<div className="flex">
+							<div className="flex-shrink-0 flex items-center">
+								<FileSpreadsheet className="h-8 w-8 text-primary" />
+								<span className="ml-2 text-xl font-bold text-primary">
+									Excel Uploader
+								</span>
+							</div>
+						</div>
+					</div>
+				</nav>
+			</header>
+
+			<main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+				{data.length === 0 && (
+					<div className="max-w-3xl mx-auto">
+						<h1 className="text-3xl font-bold text-center mb-8">
+							Upload Your Excel File
+						</h1>
+						<div
+							{...getRootProps()}
+							className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+								isDragActive
+									? "border-primary bg-primary/10"
+									: "border-gray-300 hover:border-primary"
+							}`}
+						>
+							<input {...getInputProps()} />
+							{file ? (
+								<div className="flex items-center justify-center space-x-4">
+									<FileSpreadsheet className="h-8 w-8 text-primary" />
+									<span className="text-lg">{file.name}</span>
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={(e) => {
+											e.stopPropagation();
+											removeFile();
+										}}
+									>
+										<X className="h-5 w-5 text-muted-foreground" />
+									</Button>
+								</div>
+							) : (
+								<div>
+									<Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+									<p className="text-lg mb-2">
+										Drag and drop your Excel file here, or click to select
+									</p>
+									<p className="text-sm text-muted-foreground">
+										Only .xlsx files are accepted
+									</p>
+								</div>
+							)}
+						</div>
+						{error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+						{file && (
+							<div className="mt-4 text-center">
+								<Button onClick={() => console.log("Process file:", file)}>
+									Process File
+								</Button>
+							</div>
+						)}
+					</div>
+				)}
+
+				<div className="grid gap-6">
+					{data.map((d, index) => (
+						<EmployeeCard
+							key={index}
+							index={index}
+							total={data.length}
+							details={d}
+						/>
+					))}
+				</div>
+			</main>
+
+			<footer className="bg-muted mt-auto">
+				<div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+					<p className="text-center text-sm text-muted-foreground">
+						&copy; {new Date().getFullYear()} Excel Uploader. All rights
+						reserved.
+					</p>
+				</div>
+			</footer>
+		</div>
+	);
 }
